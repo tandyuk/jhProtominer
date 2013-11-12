@@ -1,0 +1,58 @@
+CXX = g++
+CFLAGS = -mtune=native -msse4.1 -pthread -pipe -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS += -O3 -Wall
+# for debugging comment this
+CFLAGS += -fomit-frame-pointer -fno-strict-aliasing -funroll-loops -fno-strength-reduce
+# for debugging uncomment this
+#CFLAGS += -Wextra -Wredundant-decls -Wpadded -Wunreachable-code -Wdisabled-optimization -Wno-missing-field-initializers -Wno-unused-parameter -Wno-write-st$
+
+LDFLAGS = -ffast-math
+
+OSVERSION := $(shell uname -s)
+LIBS = -lgmp -lgmpxx -lcrypto -lssl -pthread
+
+ifeq ($(OSTYPE),cygwin)
+  CFLAGS += -std=gnu++0x
+endif
+
+ifeq ($(OSVERSION),Linux)
+        LIBS += -lrt
+        CFLAGS += -std=c++0x
+endif
+
+# You might need to edit these paths too
+LIBPATHS = -L/usr/local/lib -L/usr/lib
+INCLUDEPATHS = -I/usr/local/include -I/usr/include
+
+ifeq ($(OSVERSION),Darwin)
+        GOT_MACPORTS := $(shell which port)
+ifdef GOT_MACPORTS
+        LIBPATHS += -L/opt/local/lib
+        INCLUDEPATHS += -I/opt/local/include
+endif
+endif
+
+OBJS = \
+        src/jhProtominer/jhlib.o \
+        src/jhProtominer/main.o \
+        src/jhProtominer/protosharesMiner.o \
+        src/jhProtominer/sha2.o \
+        src/jhProtominer/transaction.o \
+        src/jhProtominer/xptClient.o \
+        src/jhProtominer/xptClientPacketHandler.o \
+        src/jhProtominer/xptPacketbuffer.o \
+        src/jhProtominer/xptServer.o \
+        src/jhProtominer/xptServerPacketHandler.o
+
+all: jhprotominer
+
+src/jhProtominer/%.o: src/jhProtominer/%.cpp
+        $(CXX) -c $(CFLAGS) $(INCLUDEPATHS) $< -o $@
+
+jhprotominer: $(OBJS:src/jhProtominer/%=src/jhProtominer/%)
+        $(CXX) $(CFLAGS) $(LIBPATHS) $(INCLUDEPATHS) -o $@ $^ $(LIBS)
+
+clean:
+        -rm -f jhprotominer
+        -rm -f src/primecoinMiner/*.o
+
